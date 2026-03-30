@@ -8,12 +8,13 @@ from astrbot.core.message.message_event_result import MessageChain
 
 from .jobs_tencent import get_filtered_tencent_jobs
 from .jobs_dajiang import get_filtered_dji_jobs
+from .jobs_wangyi import get_filtered_wangyi_jobs
 
 # ===================== 【统一格式化函数】核心 =====================
-def format_all_jobs(tencent_jobs, dji_jobs, query_type="all"):
+def format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs, query_type="all"):
     """
-    极简格式化：抽离重复逻辑，支持三种查询模式
-    query_type: all / tencent / dji
+    极简格式化：抽离重复逻辑，支持四种查询模式
+    query_type: all / tencent / dji / wangyi
     """
     # 【抽离公共渲染函数】同一套渲染模板
     def render_company(title: str, jobs: list) -> str:
@@ -24,29 +25,34 @@ def format_all_jobs(tencent_jobs, dji_jobs, query_type="all"):
             items.append(f"{idx}. {job['岗位名']}\n {job['工作地点']} | {job['更新时间']}\n {job['详情链接']}")
         return "\n".join(items)
 
-    t_count, d_count = len(tencent_jobs), len(dji_jobs)
+    t_count, d_count, w_count = len(tencent_jobs), len(dji_jobs), len(wangyi_jobs)
 
     # 仅查询腾讯
     if query_type == "tencent":
-        return render_company(f"🔵 腾讯运营岗位（共{t_count}个）", tencent_jobs) if t_count else "✅ 腾讯运营暂无符合条件的岗位"
+        return render_company(f"🔵 腾讯岗位（共{t_count}个）", tencent_jobs) if t_count else "✅ 腾讯暂无符合条件的岗位"
     
     # 仅查询大疆
     if query_type == "dji":
-        return render_company(f"🔵 大疆运营岗位（共{d_count}个）", dji_jobs) if d_count else "✅ 大疆运营暂无符合条件的岗位"
+        return render_company(f"🔵 大疆岗位（共{d_count}个）", dji_jobs) if d_count else "✅ 大疆暂无符合条件的岗位"
     
-    # 同时查询两家（默认）
-    total = t_count + d_count
+    # 仅查询网易
+    if query_type == "wangyi":
+        return render_company(f"🔵 网易岗位（共{w_count}个）", wangyi_jobs) if w_count else "✅ 网易暂无符合条件的岗位"
+    
+    # 同时查询三家
+    total = t_count + d_count + w_count
     if total == 0:
-        return "✅ 今日暂无符合条件的岗位\n🔵 腾讯运营：无\n🔵 大疆运营：无"
+        return "✅ 今日暂无符合条件的岗位\n🔵 腾讯：无\n🔵 大疆：无\n🔵 网易：无"
     
     return (
         f"🎯 最新符合条件岗位（总计{total}个）"
-        + render_company("🔵 腾讯运营岗位", tencent_jobs)
-        + render_company("🔵 大疆运营岗位", dji_jobs)
+        + render_company("🔵 腾讯岗位", tencent_jobs)
+        + render_company("🔵 大疆岗位", dji_jobs)
+        + render_company("🔵 网易岗位", wangyi_jobs)
     )
 
 # 注册插件
-@register("astrbot_plugin_job", "Dev", "腾讯+大疆岗位推送", "1.0", "")
+@register("astrbot_plugin_job", "Dev", "腾讯+大疆+网易岗位推送", "1.0", "")
 class JobPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -54,12 +60,12 @@ class JobPlugin(Star):
         self.groups = getattr(config, "groups", [])
         self.push_time = getattr(config, "push_time", "09:30")
         self._scheduler_task = asyncio.create_task(self.schedule_loop())
-        logger.info("✅ 腾讯+大疆岗位插件加载完成")
+        logger.info("✅ 腾讯+大疆+网易岗位插件加载完成")
 
     # ===================== 指令 =====================
     @filter.command("job")
     async def get_all_jobs(self, event: AstrMessageEvent):
-        logger.info("【指令触发】开始获取腾讯+大疆双公司岗位信息")
+        logger.info("【指令触发】开始获取腾讯+大疆+网易岗位信息")
         try:
             # 腾讯岗位
             logger.info("【执行中】正在爬取腾讯岗位数据...")
@@ -71,8 +77,14 @@ class JobPlugin(Star):
             dji_jobs = await asyncio.to_thread(get_filtered_dji_jobs)
             logger.info(f"【执行完成】大疆岗位筛选完成，符合条件：{len(dji_jobs)} 个")
 
-            logger.info(f"【汇总完成】双公司总计获取岗位：{len(tencent_jobs)+len(dji_jobs)} 个")
-            yield event.plain_result(format_all_jobs(tencent_jobs, dji_jobs, query_type="all"))
+            # 网易岗位
+            logger.info("【执行中】正在爬取网易岗位数据...")
+            wangyi_jobs = await get_filtered_wangyi_jobs()
+            logger.info(f"【执行完成】网易岗位筛选完成，符合条件：{len(wangyi_jobs)} 个")
+
+            total = len(tencent_jobs)+len(dji_jobs)+len(wangyi_jobs)
+            logger.info(f"【汇总完成】三家公司总计获取岗位：{total} 个")
+            yield event.plain_result(format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs, query_type="all"))
         except Exception as e:
             logger.error(f"【错误】获取岗位失败：{str(e)}")
             yield event.plain_result(f"❌ 获取岗位失败：{str(e)}")
@@ -83,7 +95,7 @@ class JobPlugin(Star):
         try:
             jobs = await get_filtered_tencent_jobs()
             logger.info(f"【执行完成】腾讯岗位筛选完成，符合条件：{len(jobs)} 个")
-            yield event.plain_result(format_all_jobs(jobs, [], query_type="tencent"))
+            yield event.plain_result(format_all_jobs(jobs, [], [], query_type="tencent"))
         except Exception as e:
             logger.error(f"【错误】获取腾讯岗位失败：{str(e)}")
             yield event.plain_result(f"❌ 失败：{str(e)}")
@@ -94,9 +106,20 @@ class JobPlugin(Star):
         try:
             jobs = await asyncio.to_thread(get_filtered_dji_jobs)
             logger.info(f"【执行完成】大疆岗位筛选完成，符合条件：{len(jobs)} 个")
-            yield event.plain_result(format_all_jobs([], jobs, query_type="dji"))
+            yield event.plain_result(format_all_jobs([], jobs, [], query_type="dji"))
         except Exception as e:
             logger.error(f"【错误】获取大疆岗位失败：{str(e)}")
+            yield event.plain_result(f"❌ 失败：{str(e)}")
+
+    @filter.command("wangyi")
+    async def get_wangyi_jobs(self, event: AstrMessageEvent):
+        logger.info("【指令触发】开始获取网易岗位信息")
+        try:
+            jobs = await get_filtered_wangyi_jobs()
+            logger.info(f"【执行完成】网易岗位筛选完成，符合条件：{len(jobs)} 个")
+            yield event.plain_result(format_all_jobs([], [], jobs, query_type="wangyi"))
+        except Exception as e:
+            logger.error(f"【错误】获取网易岗位失败：{str(e)}")
             yield event.plain_result(f"❌ 失败：{str(e)}")
 
     # 管理员状态指令
@@ -126,16 +149,16 @@ class JobPlugin(Star):
                 await asyncio.sleep(wait_sec)
                 
                 logger.info("【定时任务】开始执行每日岗位自动推送")
-                # 爬取数据
                 tencent_jobs = await get_filtered_tencent_jobs()
                 dji_jobs = await asyncio.to_thread(get_filtered_dji_jobs)
+                wangyi_jobs = await get_filtered_wangyi_jobs()
 
-                total = len(tencent_jobs) + len(dji_jobs)
-                logger.info(f"【定时任务】筛选完成 | 腾讯：{len(tencent_jobs)}个 | 大疆：{len(dji_jobs)}个 | 总计：{total}个")
+                total = len(tencent_jobs) + len(dji_jobs) + len(wangyi_jobs)
+                logger.info(f"【定时任务】筛选完成 | 腾讯：{len(tencent_jobs)}个 | 大疆：{len(dji_jobs)}个 | 网易：{len(wangyi_jobs)}个 | 总计：{total}个")
                 
                 # 推送消息
                 if self.groups:
-                    msg = format_all_jobs(tencent_jobs, dji_jobs)
+                    msg = format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs)
                     for g in self.groups:
                         await self.context.send_message(g, MessageChain().message(msg))
                         await asyncio.sleep(1)
