@@ -97,7 +97,7 @@ def get_filtered_yingjiao_jobs():
             
             # 关键判断：不在有效日期内 → 后面所有岗位都更旧，直接BREAK整个循环
             if current_date not in valid_dates:
-                print(f"⏹️ 检测到过期岗位 {current_date}，列表后续岗位均已过期，终止遍历")
+                # print(f"⏹️ 检测到过期岗位 {current_date}，列表后续岗位均已过期，终止遍历")
                 break
 
             # ======================================
@@ -132,7 +132,7 @@ def get_filtered_yingjiao_jobs():
                     "更新时间": current_date,
                     "岗位要求": job_requirement
                 })
-                print(f"✅ 提取并筛选成功: {job_name}")
+                # print(f"✅ 提取并筛选成功: {job_name}")
 
         except Exception as e:
             # 单个岗位解析失败不中断整体流程
@@ -142,8 +142,8 @@ def get_filtered_yingjiao_jobs():
     return final_jobs
 
 # 测试运行
-if __name__ == "__main__":
-    result = get_filtered_yingjiao_jobs()
-    print(f"\n✅ 鹰角网络筛选完成，符合条件岗位：{len(result)}")
-    for job in result:
-        print(job)
+# if __name__ == "__main__":
+#     result = get_filtered_yingjiao_jobs()
+#     print(f"\n✅ 鹰角网络筛选完成，符合条件岗位：{len(result)}")
+#     for job in result:
+#         print(job)
