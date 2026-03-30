@@ -55,35 +55,46 @@ class JobPlugin(Star):
         logger.info("✅ 腾讯+大疆岗位插件加载完成")
 
     # ===================== 指令 =====================
-    # 指令：/job → 查询双公司所有岗位（推荐）
     @filter.command("job")
     async def get_all_jobs(self, event: AstrMessageEvent):
+        logger.info("【指令触发】开始获取腾讯+大疆双公司岗位信息")
         try:
-            # 异步获取腾讯岗位
+            # 腾讯岗位
+            logger.info("【执行中】正在爬取腾讯岗位数据...")
             tencent_jobs = await get_filtered_tencent_jobs()
-            # 同步大疆岗位 → 用线程包装，不阻塞异步循环
+            logger.info(f"【执行完成】腾讯岗位筛选完成，符合条件：{len(tencent_jobs)} 个")
+            
+            # 大疆岗位
+            logger.info("【执行中】正在爬取大疆岗位数据...")
             dji_jobs = await asyncio.to_thread(get_filtered_dji_jobs)
-            # 统一格式化输出
+            logger.info(f"【执行完成】大疆岗位筛选完成，符合条件：{len(dji_jobs)} 个")
+
+            logger.info(f"【汇总完成】双公司总计获取岗位：{len(tencent_jobs)+len(dji_jobs)} 个")
             yield event.plain_result(format_all_jobs(tencent_jobs, dji_jobs))
         except Exception as e:
+            logger.error(f"【错误】获取岗位失败：{str(e)}")
             yield event.plain_result(f"❌ 获取岗位失败：{str(e)}")
 
-    # 保留原指令：/tencent → 仅查询腾讯
     @filter.command("tencent")
     async def get_tencent_jobs(self, event: AstrMessageEvent):
+        logger.info("【指令触发】开始获取腾讯岗位信息")
         try:
             jobs = await get_filtered_tencent_jobs()
+            logger.info(f"【执行完成】腾讯岗位筛选完成，符合条件：{len(jobs)} 个")
             yield event.plain_result(format_all_jobs(jobs, []))
         except Exception as e:
+            logger.error(f"【错误】获取腾讯岗位失败：{str(e)}")
             yield event.plain_result(f"❌ 失败：{str(e)}")
 
-    # 新增指令：/dji → 仅查询大疆
     @filter.command("dji")
     async def get_dji_jobs(self, event: AstrMessageEvent):
+        logger.info("【指令触发】开始获取大疆岗位信息")
         try:
             jobs = await asyncio.to_thread(get_filtered_dji_jobs)
+            logger.info(f"【执行完成】大疆岗位筛选完成，符合条件：{len(jobs)} 个")
             yield event.plain_result(format_all_jobs([], jobs))
         except Exception as e:
+            logger.error(f"【错误】获取大疆岗位失败：{str(e)}")
             yield event.plain_result(f"❌ 失败：{str(e)}")
 
     # 管理员状态指令
@@ -98,7 +109,7 @@ class JobPlugin(Star):
         wait = int((next_t - now).total_seconds() / 60)
         yield event.plain_result(f"运行中\n推送时间：{self.push_time}\n下次推送：{wait}分钟后")
 
-    # ===================== 定时推送（双公司整合） =====================
+    # ===================== 定时推送 =====================
     async def schedule_loop(self):
         while True:
             try:
@@ -107,24 +118,35 @@ class JobPlugin(Star):
                 next_t = now.replace(hour=h, minute=m, second=0)
                 if next_t < now:
                     next_t += datetime.timedelta(days=1)
-                await asyncio.sleep((next_t - now).total_seconds())
+                wait_sec = (next_t - now).total_seconds()
                 
-                # 获取双公司岗位
+                logger.info(f"【定时任务】等待 {int(wait_sec/60)} 分钟后执行自动推送")
+                await asyncio.sleep(wait_sec)
+                
+                logger.info("【定时任务】开始执行每日岗位自动推送")
+                # 爬取数据
                 tencent_jobs = await get_filtered_tencent_jobs()
                 dji_jobs = await asyncio.to_thread(get_filtered_dji_jobs)
+
+                total = len(tencent_jobs) + len(dji_jobs)
+                logger.info(f"【定时任务】筛选完成 | 腾讯：{len(tencent_jobs)}个 | 大疆：{len(dji_jobs)}个 | 总计：{total}个")
                 
                 # 推送消息
-                if (tencent_jobs or dji_jobs) and self.groups:
+                if self.groups:
                     msg = format_all_jobs(tencent_jobs, dji_jobs)
                     for g in self.groups:
                         await self.context.send_message(g, MessageChain().message(msg))
                         await asyncio.sleep(1)
+                    logger.info("【定时任务】岗位推送完成！")
+                else:
+                    logger.info("【定时任务】未配置推送群组，跳过推送")
+                    
                 await asyncio.sleep(60)
             except Exception as e:
-                logger.error(f"定时任务错误：{e}")
+                logger.error(f"【定时任务】执行错误：{e}")
                 await asyncio.sleep(300)
 
     # 卸载停止任务
     async def terminate(self):
         self._scheduler_task.cancel()
-        logger.info("🛑 插件已停止")
+        logger.info("🛑 插件已停止运行")
