@@ -10,38 +10,40 @@ from .jobs_tencent import get_filtered_tencent_jobs
 from .jobs_dajiang import get_filtered_dji_jobs
 
 # ===================== 【统一格式化函数】核心 =====================
-def format_all_jobs(tencent_jobs, dji_jobs):
-    """统一格式化腾讯+大疆岗位，输出标准排版，明确标注无岗位的公司"""
-    tencent_count = len(tencent_jobs)
-    dji_count = len(dji_jobs)
-    total = tencent_count + dji_count
+def format_all_jobs(tencent_jobs, dji_jobs, query_type="all"):
+    """
+    极简格式化：抽离重复逻辑，支持三种查询模式
+    query_type: all / tencent / dji
+    """
+    # 【抽离公共渲染函数】同一套渲染模板
+    def render_company(title: str, jobs: list) -> str:
+        if not jobs:
+            return f"\n{title}\n暂无符合条件的岗位"
+        items = [f"\n{title}"]
+        for idx, job in enumerate(jobs, 1):
+            items.append(f"{idx}. {job['岗位名']}\n {job['工作地点']} | {job['更新时间']}\n {job['详情链接']}")
+        return "\n".join(items)
 
-    text = []
+    t_count, d_count = len(tencent_jobs), len(dji_jobs)
 
-    # 情况1：两家都没有岗位
+    # 仅查询腾讯
+    if query_type == "tencent":
+        return render_company(f"🔵 腾讯运营岗位（共{t_count}个）", tencent_jobs) if t_count else "✅ 腾讯运营暂无符合条件的岗位"
+    
+    # 仅查询大疆
+    if query_type == "dji":
+        return render_company(f"🔵 大疆运营岗位（共{d_count}个）", dji_jobs) if d_count else "✅ 大疆运营暂无符合条件的岗位"
+    
+    # 同时查询两家（默认）
+    total = t_count + d_count
     if total == 0:
         return "✅ 今日暂无符合条件的岗位\n🔵 腾讯运营：无\n🔵 大疆运营：无"
-
-    # 情况2：至少一家有岗位，先写总标题
-    text.append(f"🎯 最新符合条件岗位（总计{total}个）")
-
-    # 腾讯部分
-    text.append("\n🔵 腾讯运营岗位")
-    if tencent_count > 0:
-        for i, job in enumerate(tencent_jobs, 1):
-            text.append(f"{i}. {job['岗位名']}\n {job['工作地点']} | {job['更新时间']}\n {job['详情链接']}")
-    else:
-        text.append("暂无符合条件的岗位")
-
-    # 大疆部分
-    text.append("\n🔵 大疆运营岗位")
-    if dji_count > 0:
-        for i, job in enumerate(dji_jobs, 1):
-            text.append(f"{i}. {job['岗位名']}\n {job['工作地点']} | {job['更新时间']}\n {job['详情链接']}")
-    else:
-        text.append("暂无符合条件的岗位")
-
-    return "\n".join(text)
+    
+    return (
+        f"🎯 最新符合条件岗位（总计{total}个）"
+        + render_company("🔵 腾讯运营岗位", tencent_jobs)
+        + render_company("🔵 大疆运营岗位", dji_jobs)
+    )
 
 # 注册插件
 @register("astrbot_plugin_job", "Dev", "腾讯+大疆岗位推送", "1.0", "")
@@ -70,7 +72,7 @@ class JobPlugin(Star):
             logger.info(f"【执行完成】大疆岗位筛选完成，符合条件：{len(dji_jobs)} 个")
 
             logger.info(f"【汇总完成】双公司总计获取岗位：{len(tencent_jobs)+len(dji_jobs)} 个")
-            yield event.plain_result(format_all_jobs(tencent_jobs, dji_jobs))
+            yield event.plain_result(format_all_jobs(tencent_jobs, dji_jobs, query_type="all"))
         except Exception as e:
             logger.error(f"【错误】获取岗位失败：{str(e)}")
             yield event.plain_result(f"❌ 获取岗位失败：{str(e)}")
@@ -81,7 +83,7 @@ class JobPlugin(Star):
         try:
             jobs = await get_filtered_tencent_jobs()
             logger.info(f"【执行完成】腾讯岗位筛选完成，符合条件：{len(jobs)} 个")
-            yield event.plain_result(format_all_jobs(jobs, []))
+            yield event.plain_result(format_all_jobs(jobs, [], query_type="tencent"))
         except Exception as e:
             logger.error(f"【错误】获取腾讯岗位失败：{str(e)}")
             yield event.plain_result(f"❌ 失败：{str(e)}")
@@ -92,7 +94,7 @@ class JobPlugin(Star):
         try:
             jobs = await asyncio.to_thread(get_filtered_dji_jobs)
             logger.info(f"【执行完成】大疆岗位筛选完成，符合条件：{len(jobs)} 个")
-            yield event.plain_result(format_all_jobs([], jobs))
+            yield event.plain_result(format_all_jobs([], jobs, query_type="dji"))
         except Exception as e:
             logger.error(f"【错误】获取大疆岗位失败：{str(e)}")
             yield event.plain_result(f"❌ 失败：{str(e)}")
