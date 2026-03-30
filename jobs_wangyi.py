@@ -64,7 +64,7 @@ async def get_filtered_wangyi_jobs():
             filtered.append(job)
 
     # 第二层筛选：排除硕士/年限
-    keywords = ['硕士', '3年', '4年', '5年', '6年', '7年', '8年', '9年', '10年']
+    keywords = ['硕士', '三年', '3年','四年', '4年', '五年', '5年', '六年', '6年', '七年', '7年', '八年', '8年', '九年', '9年', '十年', '10年']
     final = []
     for job in filtered:
         job_id = job.get("id", "")
