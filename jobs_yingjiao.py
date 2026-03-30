@@ -6,12 +6,12 @@ import time
 import re
 
 def get_filtered_yingjiao_jobs():
-    # ===================== 核心配置 字段&规则1:1对齐大疆 =====================
+    # ===================== 核心配置 =====================
     BASE_URL = "https://jobs.hypergryph.com/apply/hypergryph/26325/#/jobs?page=1&commitment%5B0%5D=%E5%85%A8%E8%81%8C&zhineng%5B0%5D=46432&pageSize=15"
     BASE_DETAIL_DOMAIN = "https://jobs.hypergryph.com/apply/hypergryph/26325/"
     EXCLUDE_KEYWORDS = ['硕士', '三年', '3年','四年', '4年', '五年', '5年', '六年', '6年', '七年', '7年', '八年', '8年', '九年', '9年', '十年', '10年']
     
-    # ===================== 浏览器配置 完全复用大疆配置 =====================
+    # ===================== 浏览器配置 =====================
     options = Options()
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
@@ -24,15 +24,15 @@ def get_filtered_yingjiao_jobs():
     ) # type: ignore
     driver.set_page_load_timeout(60)
 
-    # ===================== 工具函数 格式&规则对齐大疆 =====================
+    # ===================== 工具函数 =====================
     def get_valid_dates():
-        """和大疆完全一致：获取近2天的日期，格式统一为YYYY年MM月DD日"""
+        """获取近2天的日期，格式统一为YYYY年MM月DD日"""
         today = date.today()
-        yesterday = today - timedelta(days=8)
+        yesterday = today - timedelta(days=2)
         return [today.strftime("%Y年%m月%d日"), yesterday.strftime("%Y年%m月%d日")]
 
     def convert_date(date_str: str) -> str:
-        """适配鹰角固定格式：发布于 2026-03-25 → 转换为和大疆一致的YYYY年MM月DD日格式"""
+        """适配鹰角固定格式：发布于 2026-03-25 → 转换为一致的YYYY年MM月DD日格式"""
         try:
             clean_date = re.search(r'(\d{4}-\d{1,2}-\d{1,2})', date_str)
             if clean_date:
@@ -42,7 +42,7 @@ def get_filtered_yingjiao_jobs():
             return date_str
 
     def parse_job_requirement_only(html):
-        """【精简版】仅提取岗位要求，不处理职位描述，适配列表页直接提取"""
+        """仅提取岗位要求，不处理职位描述，适配列表页直接提取"""
         # 移除HTML标签，保留文本结构
         html = re.sub(r'<p.*?>', '\n', html)
         html = re.sub(r'</p>', '', html)
@@ -77,66 +77,73 @@ def get_filtered_yingjiao_jobs():
         job_req = '\n'.join([line for line in job_req.split('\n') if line.strip()])
         return job_req
 
-    # ===================== 核心流程 简化提取，列表页一次性完成 =====================
+    # ===================== 核心流程 优化：提前日期筛选，无效直接终止循环 =====================
     valid_dates = get_valid_dates()
+    final_jobs = []  # 直接存储最终结果，减少中间列表
     
     # 1. 打开列表页，等待SPA页面完全渲染
     driver.get(BASE_URL)
     time.sleep(5)
     job_items = driver.find_elements(By.CSS_SELECTOR, ".container-aOp138AX_X.normal-TBuWTpDMcE.list-oR2doUijv4")
-    raw_jobs = []
 
     for item in job_items:
         try:
-            # 滚动确保元素可见，避免提取失败
+            # ======================================
+            # 【优化核心】第一步：仅提取日期，快速筛选
+            # 列表按最新→最旧排序，日期不符直接终止循环
+            # ======================================
+            update_time_raw = item.find_element(By.CSS_SELECTOR, ".published-at-PQ5IBWmbJV").text.strip()
+            current_date = convert_date(update_time_raw)
+            
+            # 关键判断：不在有效日期内 → 后面所有岗位都更旧，直接BREAK整个循环
+            if current_date not in valid_dates:
+                print(f"⏹️ 检测到过期岗位 {current_date}，列表后续岗位均已过期，终止遍历")
+                break
+
+            # ======================================
+            # 【只有日期符合】才执行后续提取操作
+            # ======================================
+            # 滚动确保元素可见
             driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", item)
             time.sleep(0.5)
 
-            # 1. 提取详情页链接（仅保留URL，不跳转访问）
+            # 提取详情页链接
             job_a_tag = item.find_element(By.CSS_SELECTOR, "a.link-txmgVOCVz9")
             detail_href = job_a_tag.get_attribute("href")
-            # 兜底兼容相对路径，自动补全域名
             detail_url = BASE_DETAIL_DOMAIN + detail_href if detail_href.startswith("#") else detail_href
 
-            # 2. 提取基础信息
+            # 提取岗位名、工作地点
             job_name = item.find_element(By.CSS_SELECTOR, ".title-u2qk9xX9Ie.target-color-container").text.strip()
-            update_time_raw = item.find_element(By.CSS_SELECTOR, ".published-at-PQ5IBWmbJV").text.strip()
-            
-            # 3. 精准提取工作地点（固定三栏结构，取第三个节点）
             info_nodes = item.find_elements(By.CSS_SELECTOR, ".info-tPG_0QGbhl .sd-foundation-body-secondary-1Z7H-")
             city = info_nodes[2].text.strip() if len(info_nodes) >=3 else "上海市"
 
-            # 4. 列表页直接提取岗位要求，无需跳转详情页
+            # 提取岗位要求
             desc_elem = item.find_element(By.CLASS_NAME, "job-description-WwRmovZt9o")
             inner_html = desc_elem.get_attribute("innerHTML")
             job_requirement = parse_job_requirement_only(inner_html)
 
-            # 组装基础信息，字段和大疆完全对齐
-            raw_jobs.append({
-                "公司": "鹰角网络",
-                "岗位名": job_name,
-                "工作地点": city,
-                "详情链接": detail_url,
-                "更新时间": convert_date(update_time_raw),
-                "岗位要求": job_requirement
-            })
-            print(f"✅ 提取成功: {job_name}")
+            # 第二层筛选：排除关键词，符合条件直接加入最终列表
+            if not any(k in job_requirement for k in EXCLUDE_KEYWORDS):
+                final_jobs.append({
+                    "公司": "鹰角网络",
+                    "岗位名": job_name,
+                    "工作地点": city,
+                    "详情链接": detail_url,
+                    "更新时间": current_date,
+                    "岗位要求": job_requirement
+                })
+                print(f"✅ 提取并筛选成功: {job_name}")
+
         except Exception as e:
             # 单个岗位解析失败不中断整体流程
             continue
-
-    # 2. 第一层筛选：仅保留近2天更新的岗位，和大疆逻辑完全一致
-    filtered_by_date = [j for j in raw_jobs if j["更新时间"] in valid_dates]
-
-    # 3. 第二层筛选：排除含学历/年限关键词的岗位，和大疆逻辑完全一致
-    final_jobs = [j for j in filtered_by_date if not any(k in j["岗位要求"] for k in EXCLUDE_KEYWORDS)]
 
     driver.quit()
     return final_jobs
 
 # 测试运行
-# if __name__ == "__main__":
-#     result = get_filtered_yingjiao_jobs()
-#     print(f"✅ 鹰角网络筛选完成，符合条件岗位：{len(result)}")
-#     for job in result:
-#         print(job)
+if __name__ == "__main__":
+    result = get_filtered_yingjiao_jobs()
+    print(f"\n✅ 鹰角网络筛选完成，符合条件岗位：{len(result)}")
+    for job in result:
+        print(job)
