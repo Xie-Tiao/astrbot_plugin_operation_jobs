@@ -1,3 +1,4 @@
+# jobs_tencent.py
 import asyncio
 import httpx
 from datetime import date, timedelta
@@ -80,6 +81,7 @@ async def get_filtered_tencent_jobs():
     for job in filtered:
         req = await fetch_job_requirement(job.get("PostId", ""))
         full_jobs.append({
+            "公司": "腾讯",
             "岗位名": job.get("RecruitPostName", ""),
             "工作地点": job.get("LocationName", ""),
             "详情链接": job.get("PostURL", ""),
