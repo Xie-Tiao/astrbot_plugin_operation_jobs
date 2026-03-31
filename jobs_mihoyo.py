@@ -20,7 +20,7 @@ async def get_filtered_mihoyo_jobs():
 
     LIST_PARAMS = {
         "jobName": "",
-        "competencyTypes": [5, 6, 8],
+        "competencyTypes": [5, 6, 8], # 运营类、市场&商务类、国际化类
         "channelDetailIds": [1, 2],
         "hireType": 0,
         "pageNo": 1,
