@@ -13,12 +13,13 @@ from .jobs_bili import get_filtered_bili_jobs
 from .jobs_yingjiao import get_filtered_yingjiao_jobs
 from .jobs_xiaohongshu import get_filtered_xhs_jobs
 from .jobs_bytedance import get_filtered_bytedance_jobs
+from .jobs_mihoyo import get_filtered_mihoyo_jobs
 
 # ===================== 【统一格式化函数】核心 =====================
-def format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs, bili_jobs, yingjiao_jobs, xhs_jobs, bytedance_jobs, query_type="all"):
+def format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs, bili_jobs, yingjiao_jobs, xhs_jobs, bytedance_jobs, mihoyo_jobs, query_type="all"):
     """
-    极简格式化：抽离重复逻辑，支持八种查询模式
-    query_type: all / tencent / dji / wangyi / bili / yingjiao / xhs / bytedance
+    极简格式化：抽离重复逻辑，支持九种查询模式
+    query_type: all / tencent / dji / wangyi / bili / yingjiao / xhs / bytedance / mihoyo
     """
     # 【抽离公共渲染函数】同一套渲染模板
     def render_company(title: str, jobs: list) -> str:
@@ -36,6 +37,7 @@ def format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs, bili_jobs, yingjiao_job
     y_count = len(yingjiao_jobs)
     x_count = len(xhs_jobs)
     bt_count = len(bytedance_jobs)
+    mihoyo_count = len(mihoyo_jobs)
 
     # 仅查询腾讯
     if query_type == "tencent":
@@ -65,10 +67,14 @@ def format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs, bili_jobs, yingjiao_job
     if query_type == "bytedance":
         return render_company(f"🔵 字节跳动岗位（共{bt_count}个）", bytedance_jobs) if bt_count else "✅ 字节跳动暂无符合条件的岗位"
     
-    # 同时查询七家
-    total = t_count + d_count + w_count + b_count + y_count + x_count + bt_count
+    # 仅查询米哈游
+    if query_type == "mihoyo":
+        return render_company(f"🔵 米哈游岗位（共{mihoyo_count}个）", mihoyo_jobs) if mihoyo_count else "✅ 米哈游暂无符合条件的岗位"
+    
+    # 同时查询八家
+    total = t_count + d_count + w_count + b_count + y_count + x_count + bt_count + mihoyo_count
     if total == 0:
-        return "✅ 今日暂无符合条件的岗位\n🔵 腾讯：无\n🔵 大疆：无\n🔵 网易：无\n🔵 B站：无\n🔵 鹰角网络：无\n🔵 小红书：无\n🔵 字节跳动：无"
+        return "✅ 今日暂无符合条件的岗位\n🔵 腾讯：无\n🔵 大疆：无\n🔵 网易：无\n🔵 B站：无\n🔵 鹰角网络：无\n🔵 小红书：无\n🔵 字节跳动：无\n🔵 米哈游：无"
     
     return (
         f"🎯 最新符合条件岗位（总计{total}个）"
@@ -78,9 +84,11 @@ def format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs, bili_jobs, yingjiao_job
         + render_company(f"🔵 B站岗位（{b_count}个）", bili_jobs)
         + render_company(f"🔵 鹰角网络岗位（{y_count}个）", yingjiao_jobs)
         + render_company(f"🔵 小红书岗位（{x_count}个）", xhs_jobs)
+        + render_company(f"🔵 字节跳动岗位（{bt_count}个）", bytedance_jobs)
+        + render_company(f"🔵 米哈游岗位（{mihoyo_count}个）", mihoyo_jobs)
     )
 
-@register("astrbot_plugin_job", "Dev", "腾讯+大疆+网易+B站+鹰角网络+小红书+字节跳动岗位推送", "1.4", "")
+@register("astrbot_plugin_job", "Dev", "腾讯+大疆+网易+B站+鹰角网络+小红书+字节跳动+米哈游岗位推送", "1.5", "")
 class JobPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -88,7 +96,7 @@ class JobPlugin(Star):
         self.groups = getattr(config, "groups", [])
         self.push_time = getattr(config, "push_time", "09:30")
         self._scheduler_task = asyncio.create_task(self.schedule_loop())
-        logger.info("✅ 腾讯+大疆+网易+B站+鹰角网络+小红书+字节跳动岗位插件加载完成")
+        logger.info("✅ 腾讯+大疆+网易+B站+鹰角网络+小红书+字节跳动+米哈游岗位插件加载完成")
 
     # ===================== 指令 =====================
     @filter.command("job")
@@ -130,8 +138,13 @@ class JobPlugin(Star):
             bytedance_jobs = await asyncio.to_thread(get_filtered_bytedance_jobs)
             logger.info(f"【执行完成】字节跳动岗位筛选完成，符合条件：{len(bytedance_jobs)} 个")
 
+            # 米哈游岗位
+            logger.info("【执行中】正在爬取米哈游岗位数据...")
+            mihoyo_jobs = await get_filtered_mihoyo_jobs()
+            logger.info(f"【执行完成】米哈游岗位筛选完成，符合条件：{len(mihoyo_jobs)} 个")
+
             # 格式化输出
-            result_msg = format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs, bili_jobs, yingjiao_jobs, xhs_jobs, bytedance_jobs)
+            result_msg = format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs, bili_jobs, yingjiao_jobs, xhs_jobs, bytedance_jobs, mihoyo_jobs)
             yield event.plain_result(result_msg)
             
         except Exception as e:
@@ -144,7 +157,7 @@ class JobPlugin(Star):
         try:
             jobs = await get_filtered_tencent_jobs()
             logger.info(f"【执行完成】腾讯岗位筛选完成，符合条件：{len(jobs)} 个")
-            yield event.plain_result(format_all_jobs(jobs, [], [], [], [], [], [], query_type="tencent"))
+            yield event.plain_result(format_all_jobs(jobs, [], [], [], [], [], [], [], query_type="tencent"))
         except Exception as e:
             logger.error(f"【错误】获取腾讯岗位失败：{str(e)}", exc_info=True)
             yield event.plain_result(f"❌ 失败：{str(e)}")
@@ -155,7 +168,7 @@ class JobPlugin(Star):
         try:
             jobs = await asyncio.to_thread(get_filtered_dji_jobs)
             logger.info(f"【执行完成】大疆岗位筛选完成，符合条件：{len(jobs)} 个")
-            yield event.plain_result(format_all_jobs([], jobs, [], [], [], [], [], query_type="dji"))
+            yield event.plain_result(format_all_jobs([], jobs, [], [], [], [], [], [], query_type="dji"))
         except Exception as e:
             logger.error(f"【错误】获取大疆岗位失败：{str(e)}", exc_info=True)
             yield event.plain_result(f"❌ 失败：{str(e)}")
@@ -166,7 +179,7 @@ class JobPlugin(Star):
         try:
             jobs = await get_filtered_wangyi_jobs()
             logger.info(f"【执行完成】网易岗位筛选完成，符合条件：{len(jobs)} 个")
-            yield event.plain_result(format_all_jobs([], [], jobs, [], [], [], [], query_type="wangyi"))
+            yield event.plain_result(format_all_jobs([], [], jobs, [], [], [], [], [], query_type="wangyi"))
         except Exception as e:
             logger.error(f"【错误】获取网易岗位失败：{str(e)}", exc_info=True)
             yield event.plain_result(f"❌ 失败：{str(e)}")
@@ -177,7 +190,7 @@ class JobPlugin(Star):
         try:
             jobs = await asyncio.to_thread(get_filtered_bili_jobs)
             logger.info(f"【执行完成】B站岗位筛选完成，符合条件：{len(jobs)} 个")
-            yield event.plain_result(format_all_jobs([], [], [], jobs, [], [], [], query_type="bili"))
+            yield event.plain_result(format_all_jobs([], [], [], jobs, [], [], [], [], query_type="bili"))
         except Exception as e:
             logger.error(f"【错误】获取B站岗位失败：{str(e)}", exc_info=True)
             yield event.plain_result(f"❌ 失败：{str(e)}")
@@ -188,7 +201,7 @@ class JobPlugin(Star):
         try:
             jobs = await asyncio.to_thread(get_filtered_yingjiao_jobs)
             logger.info(f"【执行完成】鹰角网络岗位筛选完成，符合条件：{len(jobs)} 个")
-            yield event.plain_result(format_all_jobs([], [], [], [], jobs, [], [], query_type="yingjiao"))
+            yield event.plain_result(format_all_jobs([], [], [], [], jobs, [], [], [], query_type="yingjiao"))
         except Exception as e:
             logger.error(f"【错误】获取鹰角网络岗位失败：{str(e)}", exc_info=True)
             yield event.plain_result(f"❌ 失败：{str(e)}")
@@ -199,7 +212,7 @@ class JobPlugin(Star):
         try:
             jobs = await asyncio.to_thread(get_filtered_xhs_jobs)
             logger.info(f"【执行完成】小红书岗位筛选完成，符合条件：{len(jobs)} 个")
-            yield event.plain_result(format_all_jobs([], [], [], [], [], jobs, [], query_type="xhs"))
+            yield event.plain_result(format_all_jobs([], [], [], [], [], jobs, [], [], query_type="xhs"))
         except Exception as e:
             logger.error(f"【错误】获取小红书岗位失败：{str(e)}", exc_info=True)
             yield event.plain_result(f"❌ 失败：{str(e)}")
@@ -210,9 +223,20 @@ class JobPlugin(Star):
         try:
             jobs = await asyncio.to_thread(get_filtered_bytedance_jobs)
             logger.info(f"【执行完成】字节跳动岗位筛选完成，符合条件：{len(jobs)} 个")
-            yield event.plain_result(format_all_jobs([], [], [], [], [], [], jobs, query_type="bytedance"))
+            yield event.plain_result(format_all_jobs([], [], [], [], [], [], jobs, [], query_type="bytedance"))
         except Exception as e:
             logger.error(f"【错误】获取字节跳动岗位失败：{str(e)}", exc_info=True)
+            yield event.plain_result(f"❌ 失败：{str(e)}")
+
+    @filter.command("mihoyo")
+    async def get_mihoyo_jobs(self, event: AstrMessageEvent):
+        logger.info("【指令触发】开始获取米哈游岗位信息")
+        try:
+            jobs = await get_filtered_mihoyo_jobs()
+            logger.info(f"【执行完成】米哈游岗位筛选完成，符合条件：{len(jobs)} 个")
+            yield event.plain_result(format_all_jobs([], [], [], [], [], [], [], jobs, query_type="mihoyo"))
+        except Exception as e:
+            logger.error(f"【错误】获取米哈游岗位失败：{str(e)}", exc_info=True)
             yield event.plain_result(f"❌ 失败：{str(e)}")
 
     # 管理员状态指令
@@ -249,8 +273,9 @@ class JobPlugin(Star):
                 yingjiao_jobs = await asyncio.to_thread(get_filtered_yingjiao_jobs)
                 xhs_jobs = await asyncio.to_thread(get_filtered_xhs_jobs)
                 bytedance_jobs = await asyncio.to_thread(get_filtered_bytedance_jobs)
+                mihoyo_jobs = await get_filtered_mihoyo_jobs()
 
-                total = len(tencent_jobs) + len(dji_jobs) + len(wangyi_jobs) + len(bili_jobs) + len(yingjiao_jobs) + len(xhs_jobs) + len(bytedance_jobs)
+                total = len(tencent_jobs) + len(dji_jobs) + len(wangyi_jobs) + len(bili_jobs) + len(yingjiao_jobs) + len(xhs_jobs) + len(bytedance_jobs) + len(mihoyo_jobs)
                 logger.info(
                     f"【定时任务】筛选完成 | "
                     f"腾讯：{len(tencent_jobs)}个 | "
@@ -260,12 +285,13 @@ class JobPlugin(Star):
                     f"鹰角网络：{len(yingjiao_jobs)}个 | "
                     f"小红书：{len(xhs_jobs)}个 | "
                     f"字节跳动：{len(bytedance_jobs)}个 | "
+                    f"米哈游：{len(mihoyo_jobs)}个 | "
                     f"总计：{total}个"
                 )
                 
                 # 推送消息
                 if self.groups:
-                    msg = format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs, bili_jobs, yingjiao_jobs, xhs_jobs, bytedance_jobs)
+                    msg = format_all_jobs(tencent_jobs, dji_jobs, wangyi_jobs, bili_jobs, yingjiao_jobs, xhs_jobs, bytedance_jobs, mihoyo_jobs)
                     for g in self.groups:
                         await self.context.send_message(g, MessageChain().message(msg))
                         await asyncio.sleep(1)
