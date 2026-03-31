@@ -1,14 +1,19 @@
-# astrbot-plugin-helloworld
-
-AstrBot 插件模板 / A template plugin for AstrBot plugin feature
-
-> [!NOTE]
-> This repo is just a template of [AstrBot](https://github.com/AstrBotDevs/AstrBot) Plugin.
-> 
-> [AstrBot](https://github.com/AstrBotDevs/AstrBot) is an agentic assistant for both personal and group conversations. It can be deployed across dozens of mainstream instant messaging platforms, including QQ, Telegram, Feishu, DingTalk, Slack, LINE, Discord, Matrix, etc. In addition, it provides a reliable and extensible conversational AI infrastructure for individuals, developers, and teams. Whether you need a personal AI companion, an intelligent customer support agent, an automation assistant, or an enterprise knowledge base, AstrBot enables you to quickly build AI applications directly within your existing messaging workflows.
-
-# Supports
-
-- [AstrBot Repo](https://github.com/AstrBotDevs/AstrBot)
-- [AstrBot Plugin Development Docs (Chinese)](https://docs.astrbot.app/dev/star/plugin-new.html)
-- [AstrBot Plugin Development Docs (English)](https://docs.astrbot.app/en/dev/star/plugin-new.html)
+# 给NAS安装浏览器
+```
+version: '3.8'
+services:
+  selenium-chrome:
+    image: seleniarm/standalone-chromium:latest
+    container_name: selenium-arm
+    environment:
+      - TZ=Asia/Shanghai  # 北京时间（定时必加）
+      - SE_NODE_MAX_SESSIONS=3
+    # 数据挂载到你的硬盘
+    volumes:
+      - /mnt/mydisk/selenium:/config
+    ports:
+      - 4444:4444  # 爬虫唯一接口（无界面，无HTTPS报错）
+    # 防崩溃必备
+    shm_size: 1gb
+    restart: unless-stopped
+```
