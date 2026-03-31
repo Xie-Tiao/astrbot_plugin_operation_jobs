@@ -8,7 +8,7 @@ import time
 def get_filtered_dji_jobs():
     # ===================== 核心配置 =====================
     BASE_URL = "https://we.dji.com/zh-CN/social?from=home_page&category=301_302&location=3100_4403&pageSize=100&page=1"
-    EXCLUDE_KEYWORDS = ['硕士', '三年', '3年','四年', '4年', '五年', '5年', '六年', '6年', '七年', '7年', '八年', '8年', '九年', '9年', '十年', '10年']
+    EXCLUDE_KEYWORDS = ['硕士','四年', '4年', '五年', '5年', '六年', '6年', '七年', '7年', '八年', '8年', '九年', '9年', '十年', '10年']
     
     # ===================== 浏览器配置 =====================
     options = Options()

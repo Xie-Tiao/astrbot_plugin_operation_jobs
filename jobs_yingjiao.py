@@ -9,7 +9,7 @@ def get_filtered_yingjiao_jobs():
     # ===================== 核心配置 =====================
     BASE_URL = "https://jobs.hypergryph.com/apply/hypergryph/26325/#/jobs?page=1&commitment%5B0%5D=%E5%85%A8%E8%81%8C&zhineng%5B0%5D=46432&pageSize=15"
     BASE_DETAIL_DOMAIN = "https://jobs.hypergryph.com/apply/hypergryph/26325/"
-    EXCLUDE_KEYWORDS = ['硕士', '三年', '3年','四年', '4年', '五年', '5年', '六年', '6年', '七年', '7年', '八年', '8年', '九年', '9年', '十年', '10年']
+    EXCLUDE_KEYWORDS = ['硕士','四年', '4年', '五年', '5年', '六年', '6年', '七年', '7年', '八年', '8年', '九年', '9年', '十年', '10年']
     
     # ===================== 浏览器配置 =====================
     options = Options()
