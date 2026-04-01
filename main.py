@@ -4,7 +4,7 @@ from astrbot.api.star import Context, Star, register
 from astrbot.api import logger, AstrBotConfig
 from astrbot.core.message.message_event_result import MessageChain
 
-from . import jobs_tencent, jobs_dajiang, jobs_wangyi, jobs_bili, jobs_yingjiao, jobs_xiaohongshu, jobs_bytedance, jobs_mihoyo, jobs_taotian
+from . import jobs_tencent, jobs_dajiang, jobs_wangyi, jobs_bili, jobs_yingjiao, jobs_xiaohongshu, jobs_bytedance, jobs_mihoyo, jobs_taotian, jobs_aliguoji, jobs_aliyun, jobs_feizhu, jobs_qianwen, jobs_lingxihuyu, jobs_alijiankang, jobs_hujing, jobs_gaode
 
 # ===================== 配置与映射 =====================
 # 这里的顺序决定了“查询全部”时的显示顺序
@@ -18,6 +18,14 @@ COMPANY_MAP = {
     "byte":      {"name": "字节",   "func": jobs_bytedance.get_filtered_bytedance_jobs,"sync": True},
     "mihoyo":    {"name": "米哈游", "func": jobs_mihoyo.get_filtered_mihoyo_jobs,    "sync": False},
     "taotian":   {"name": "淘天",   "func": jobs_taotian.get_filtered_taotian_jobs,  "sync": True},
+    "aliguoji":  {"name": "阿里国际", "func": jobs_aliguoji.get_filtered_aliguoji_jobs,  "sync": True},
+    "aliyun":    {"name": "阿里云", "func": jobs_aliyun.get_filtered_aliyun_jobs,  "sync": True},
+    "feizhu":    {"name": "飞猪",   "func": jobs_feizhu.get_filtered_feizhu_jobs,  "sync": True},
+    "qianwen":   {"name": "千问",   "func": jobs_qianwen.get_filtered_qianwen_jobs,  "sync": True},
+    "lingxihuyu": {"name": "灵犀互娱", "func": jobs_lingxihuyu.get_filtered_lingxihuyu_jobs,  "sync": True},
+    "alijiankang": {"name": "阿里健康", "func": jobs_alijiankang.get_filtered_alijiankang_jobs,  "sync": True},
+    "hujing":    {"name": "虎鲸文娱", "func": jobs_hujing.get_filtered_hujing_jobs,  "sync": True},
+    "gaode":     {"name": "高德地图", "func": jobs_gaode.get_filtered_gaode_jobs,  "sync": True},
 }
 
 @register("astrbot_plugin_job", "Dev", "精简版多平台岗位推送", "2.0")
