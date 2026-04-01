@@ -132,7 +132,7 @@ def get_filtered_gaode_jobs():
 
                     # 保存数据
                     job_data.append({
-                        "公司": "阿里国际",
+                        "公司": "高德地图",
                         "岗位名": job_name,
                         "更新时间": update_time,
                         "工作地点": city,
@@ -166,30 +166,31 @@ def get_filtered_gaode_jobs():
                 break
 
     # ===================== 3. 执行主流程 =====================
-    auto_filter()
-    extract_jobs()
-    
-    final_jobs = [job for job in job_data if not any(keyword in job["岗位要求"] for keyword in EXCLUDE_KEYWORDS)]
-    
-    driver.quit()
-    return final_jobs
+    try:
+        auto_filter()
+        extract_jobs()
+        final_jobs = [job for job in job_data if not any(keyword in job["岗位要求"] for keyword in EXCLUDE_KEYWORDS)]
+        return final_jobs
+    finally:
+        driver.quit()
+        print("\n🔌 浏览器已安全关闭，资源释放完成")
 
 # ===================== 运行程序 =====================
-if __name__ == "__main__":
-    result = get_filtered_gaode_jobs()
+# if __name__ == "__main__":
+#     result = get_filtered_gaode_jobs()
     
-    print("\n" + "="*60)
-    print(f"🎯 最终筛选完成！符合条件岗位：{len(result)} 个")
-    print("="*60)
+#     print("\n" + "="*60)
+#     print(f"🎯 最终筛选完成！符合条件岗位：{len(result)} 个")
+#     print("="*60)
     
-    for i, job in enumerate(result[:3], 1):
-        print(f"\n【第{i}个岗位】")
-        print(f"公司：{job['公司']}")
-        print(f"岗位名：{job['岗位名']}")
-        print(f"更新时间：{job['更新时间']}")
-        print(f"工作地点：{job['工作地点']}")
-        print(f"详情链接：{job['详情链接']}")
-        print(f"岗位要求：{job['岗位要求'][:150]}...")
-        print("-"*50)
+#     for i, job in enumerate(result[:3], 1):
+#         print(f"\n【第{i}个岗位】")
+#         print(f"公司：{job['公司']}")
+#         print(f"岗位名：{job['岗位名']}")
+#         print(f"更新时间：{job['更新时间']}")
+#         print(f"工作地点：{job['工作地点']}")
+#         print(f"详情链接：{job['详情链接']}")
+#         print(f"岗位要求：{job['岗位要求'][:150]}...")
+#         print("-"*50)
     
-    print("\n✅ 执行完毕！")
+#     print("\n✅ 执行完毕！")
