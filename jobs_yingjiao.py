@@ -29,9 +29,7 @@ def get_filtered_yingjiao_jobs():
     def get_valid_dates():
         """获取近2天的日期，格式统一为YYYY年MM月DD日"""
         today = date.today()
-        print(today)
         yesterday = today - timedelta(days=1)
-        print(yesterday)
         return [today.strftime("%Y年%m月%d日"), yesterday.strftime("%Y年%m月%d日")]
 
     def convert_date(date_str: str) -> str:
@@ -117,7 +115,6 @@ def get_filtered_yingjiao_jobs():
 
             # 提取岗位名、工作地点
             job_name = item.find_element(By.CSS_SELECTOR, ".title-u2qk9xX9Ie.target-color-container").text.strip()
-            print(job_name)
             info_nodes = item.find_elements(By.CSS_SELECTOR, ".info-tPG_0QGbhl .sd-foundation-body-secondary-1Z7H-")
             city = info_nodes[2].text.strip() if len(info_nodes) >=3 else "上海市"
 
@@ -146,8 +143,8 @@ def get_filtered_yingjiao_jobs():
     return final_jobs
 
 # 测试运行
-if __name__ == "__main__":
-    result = get_filtered_yingjiao_jobs()
-    print(f"\n✅ 鹰角网络筛选完成，符合条件岗位：{len(result)}")
-    for job in result:
-        print(job)
+# if __name__ == "__main__":
+#     result = get_filtered_yingjiao_jobs()
+#     print(f"\n✅ 鹰角网络筛选完成，符合条件岗位：{len(result)}")
+#     for job in result:
+#         print(job)
