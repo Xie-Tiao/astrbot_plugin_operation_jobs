@@ -1,3 +1,4 @@
+# jobs_taotian.py
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -165,13 +166,14 @@ def get_filtered_taotian_jobs():
                 break
 
     # ===================== 3. 执行主流程 =====================
-    auto_filter()
-    extract_jobs()
-    
-    final_jobs = [job for job in job_data if not any(keyword in job["岗位要求"] for keyword in EXCLUDE_KEYWORDS)]
-    
-    driver.quit()
-    return final_jobs
+    try:
+        auto_filter()
+        extract_jobs()
+        final_jobs = [job for job in job_data if not any(keyword in job["岗位要求"] for keyword in EXCLUDE_KEYWORDS)]
+        return final_jobs
+    finally:
+        driver.quit()
+        print("\n🔌 浏览器已安全关闭，资源释放完成")
 
 # ===================== 运行程序 =====================
 # if __name__ == "__main__":
