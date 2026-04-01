@@ -15,7 +15,8 @@ def get_filtered_yingjiao_jobs():
     options = Options()
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-dev-shm-usage") # 强制使用磁盘(/tmp)代替物理内存(/dev/shm)
+    options.add_argument('--blink-settings=imagesEnabled=false') # 不加载图片，极其省内存
     options.add_argument("--disable-gpu")
 
     driver = webdriver.Remote(

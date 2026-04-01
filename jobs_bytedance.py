@@ -21,7 +21,8 @@ def get_filtered_bytedance_jobs():
     edge_options = Options()
     edge_options.add_argument("--headless=new")
     edge_options.add_argument("--no-sandbox")
-    edge_options.add_argument("--disable-dev-shm-usage")
+    edge_options.add_argument("--disable-dev-shm-usage") # 强制使用磁盘(/tmp)代替物理内存(/dev/shm)
+    edge_options.add_argument('--blink-settings=imagesEnabled=false') # 不加载图片，极其省内存
     edge_options.add_argument("--incognito")
     edge_options.add_argument("--disable-blink-features=AutomationControlled")
     edge_options.add_experimental_option("excludeSwitches", ["enable-automation"])

@@ -13,18 +13,20 @@ def get_filtered_taotian_jobs():
     EXCLUDE_KEYWORDS = ['硕士', '四年', '4年', '五年', '5年', '六年', '6年', '七年', '7年', '八年', '8年', '九年', '9年', '十年', '10年']
     
     # ===================== Edge 浏览器配置 =====================
-    edge_options = Options()
-    edge_options.add_argument("--incognito")
-    edge_options.add_argument("--disable-blink-features=AutomationControlled")
-    edge_options.add_argument("--start-maximized")
-    edge_options.add_argument("--disable-popup-blocking")
-    edge_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    edge_options.add_experimental_option('useAutomationExtension', False)
+    options = Options()
+    options.add_argument("--incognito")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--disable-dev-shm-usage") # 强制使用磁盘(/tmp)代替物理内存(/dev/shm)
+    options.add_argument('--blink-settings=imagesEnabled=false') # 不加载图片，极其省内存
+    options.add_argument("--start-maximized")
+    options.add_argument("--disable-popup-blocking")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
 
     # 初始化驱动
     driver = webdriver.Remote(
         command_executor="http://192.168.2.53:4444/wd/hub",
-        options=edge_options
+        options=options
     ) # type: ignore
     wait = WebDriverWait(driver, 30)
     driver.set_page_load_timeout(60)
