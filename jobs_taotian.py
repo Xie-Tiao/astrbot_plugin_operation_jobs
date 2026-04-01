@@ -7,7 +7,7 @@ from datetime import date, timedelta, datetime
 import time
 
 def get_filtered_taotian_jobs():
-    # ===================== 核心配置（对标B站代码） =====================
+    # ===================== 核心配置 =====================
     TARGET_URL = "https://talent.taotian.com/off-campus/position-list?lang=zh"
     # 筛选条件：排除硕士 + 4年及以上工作经验
     EXCLUDE_KEYWORDS = ['硕士', '四年', '4年', '五年', '5年', '六年', '6年', '七年', '7年', '八年', '8年', '九年', '9年', '十年', '10年']
@@ -29,12 +29,12 @@ def get_filtered_taotian_jobs():
     wait = WebDriverWait(driver, 30)
     driver.set_page_load_timeout(60)
     job_data = []
+    stop_flag = False
 
     # ===================== 工具函数：判断是否近两天发布 =====================
     def is_recent_two_days(date_str):
         """解析岗位更新时间，判断是否在近两天内"""
         try:
-            # 淘天格式：更新于 2026-04-01 → 提取 2026-04-01
             clean_date = date_str.replace("更新于 ", "").strip()
             job_date = datetime.strptime(clean_date, "%Y-%m-%d").date()
             two_days_ago = date.today() - timedelta(days=2)
@@ -78,87 +78,115 @@ def get_filtered_taotian_jobs():
             driver.execute_script("arguments[0].click();", city_label)
             time.sleep(1)
         
-        print("✅ 筛选完成！\n")
+        print("✅ 勾选完成！\n")
         time.sleep(5)
 
-    # ===================== 2. 提取岗位信息（含URL+职位要求） =====================
+    # ===================== 2. 分页提取岗位 =====================
     def extract_jobs():
-        print("开始提取岗位信息...")
-        wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "_2AOmjKmlEtuR_KEoehWYcN")))
-        job_items = driver.find_elements(By.CLASS_NAME, "_2AOmjKmlEtuR_KEoehWYcN")
+        nonlocal stop_flag
         main_handle = driver.current_window_handle
+        page_num = 1
 
-        for idx, item in enumerate(job_items, 1):
-            try:
-                # 提取基础信息
-                job_name = item.find_element(By.CLASS_NAME, "_1B0ew5wUb2dF_dhw0BFWtW").find_element(By.CLASS_NAME, "_3vj2eS7k7Mwpko5_6OSRu2").text.strip()
-                inner_info_parent = item.find_element(By.CLASS_NAME, "_2qoSPTANtUY2-c4vLhjKv6")
-                update_time = inner_info_parent.find_element(By.CLASS_NAME, "_3Jn5Z6PZA5H7Auzy0xlXu2").text.strip()
+        while not stop_flag:
+            print(f"\n📄 正在处理第 {page_num} 页岗位...")
+            # 等待岗位列表加载
+            wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "_2AOmjKmlEtuR_KEoehWYcN")))
+            job_items = driver.find_elements(By.CLASS_NAME, "_2AOmjKmlEtuR_KEoehWYcN")
 
-                # ========== 第一层筛选：仅保留近两天发布的岗位 ==========
-                if not is_recent_two_days(update_time):
-                    print(f"⏭️  跳过非近期岗位：{job_name}")
-                    continue
+            # 遍历当前页岗位
+            for idx, item in enumerate(job_items, 1):
+                try:
+                    # 提取岗位名
+                    job_name = item.find_element(By.CLASS_NAME, "_3vj2eS7k7Mwpko5_6OSRu2").text.strip()
+                    # 提取更新时间 + 城市
+                    inner_info_parent = item.find_element(By.CLASS_NAME, "_2qoSPTANtUY2-c4vLhjKv6")
+                    update_time = inner_info_parent.find_element(By.CLASS_NAME, "_3Jn5Z6PZA5H7Auzy0xlXu2").text.strip().replace("更新于 ", "")
+                    address_parent = inner_info_parent.find_element(By.CLASS_NAME, "_3CJNtKfv5mLnNfeqL1jgRB")
+                    city = address_parent.find_element(By.CLASS_NAME, "_3vj2eS7k7Mwpko5_6OSRu2").text.strip()
 
-                # 打开详情页
-                driver.execute_script("arguments[0].click();", item)
-                time.sleep(3)
-                driver.switch_to.window(driver.window_handles[-1])
-                
-                # 获取URL和职位要求
-                detail_url = driver.current_url
-                requirement = "无"
-                content_blocks = driver.find_elements(By.CLASS_NAME, "content-block")
-                if len(content_blocks) >= 3:
-                    requirement = content_blocks[2].text.strip().replace("\n", "；")
+                    # 时间筛选
+                    if not is_recent_two_days(update_time):
+                        print(f"🛑 遇到非近两天岗位：{job_name}，终止提取！")
+                        stop_flag = True
+                        break
 
-                # 关闭标签页
-                driver.close()
-                driver.switch_to.window(main_handle)
+                    # 打开岗位详情
+                    print(f"✅ 处理岗位 {idx}/{len(job_items)}：{job_name}")
+                    driver.execute_script("arguments[0].click();", item)
+                    time.sleep(3)
+                    driver.switch_to.window(driver.window_handles[-1])
+                    
+                    # 获取岗位要求
+                    detail_url = driver.current_url
+                    requirement = "无"
+                    content_blocks = driver.find_elements(By.CLASS_NAME, "content-block")
+                    if len(content_blocks) >= 3:
+                        requirement = content_blocks[2].text.strip().replace("\n", "；")
 
-                # 保存数据
-                job_data.append({
-                    "公司": "淘天",
-                    "岗位名称": job_name,
-                    "更新时间": update_time,
-                    "详情URL": detail_url,
-                    "职位要求": requirement
-                })
-                print(f"✅  已收录：{job_name}")
-
-            except Exception:
-                if len(driver.window_handles) > 1:
+                    # 关闭标签页
                     driver.close()
                     driver.switch_to.window(main_handle)
-                continue
+
+                    # 保存数据
+                    job_data.append({
+                        "公司": "淘天",
+                        "岗位名": job_name,
+                        "更新时间": update_time,
+                        "工作地点": city,
+                        "详情链接": detail_url,
+                        "岗位要求": requirement
+                    })
+
+                except Exception as e:
+                    print(f"⚠️  岗位{idx}处理失败：{str(e)}")
+                    if len(driver.window_handles) > 1:
+                        driver.close()
+                        driver.switch_to.window(main_handle)
+                    continue
+
+            if stop_flag:
+                break
+
+            # 翻页逻辑
+            try:
+                next_btn = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "button.next-pagination-item.next-next")))
+                if not next_btn.is_enabled():
+                    print("📌 已到达最后一页！")
+                    stop_flag = True
+                    break
+                driver.execute_script("arguments[0].click();", next_btn)
+                page_num += 1
+                time.sleep(4)
+            except Exception as e:
+                print("📌 未找到下一页，终止翻页！")
+                stop_flag = True
+                break
 
     # ===================== 3. 执行主流程 =====================
-    auto_filter()       # 自动筛选
-    extract_jobs()      # 提取岗位
+    auto_filter()
+    extract_jobs()
     
-    # ========== 第二层筛选：排除硕士/高年限 ==========
-    final_jobs = [job for job in job_data if not any(keyword in job["职位要求"] for keyword in EXCLUDE_KEYWORDS)]
+    final_jobs = [job for job in job_data if not any(keyword in job["岗位要求"] for keyword in EXCLUDE_KEYWORDS)]
     
-    # 关闭浏览器
     driver.quit()
     return final_jobs
 
 # ===================== 运行程序 =====================
-if __name__ == "__main__":
-    result = get_filtered_taotian_jobs()
+# if __name__ == "__main__":
+#     result = get_filtered_taotian_jobs()
     
-    # 打印最终结果（仅前3条）
-    print("\n" + "="*60)
-    print(f"🎯 最终筛选完成！符合条件岗位：{len(result)} 个")
-    print("="*60)
+#     print("\n" + "="*60)
+#     print(f"🎯 最终筛选完成！符合条件岗位：{len(result)} 个")
+#     print("="*60)
     
-    for i, job in enumerate(result[:3], 1):
-        print(f"\n【第{i}个岗位】")
-        print(f"公司：{job['公司']}")
-        print(f"岗位名称：{job['岗位名称']}")
-        print(f"更新时间：{job['更新时间']}")
-        print(f"详情链接：{job['详情URL']}")
-        print(f"职位要求：{job['职位要求'][:150]}...")
-        print("-"*50)
+#     for i, job in enumerate(result[:3], 1):
+#         print(f"\n【第{i}个岗位】")
+#         print(f"公司：{job['公司']}")
+#         print(f"岗位名：{job['岗位名']}")
+#         print(f"更新时间：{job['更新时间']}")
+#         print(f"工作地点：{job['工作地点']}")
+#         print(f"详情链接：{job['详情链接']}")
+#         print(f"岗位要求：{job['岗位要求'][:150]}...")
+#         print("-"*50)
     
-    print("\n✅ 执行完毕！")
+#     print("\n✅ 执行完毕！")
