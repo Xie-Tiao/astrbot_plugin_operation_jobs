@@ -131,13 +131,13 @@ async def get_filtered_mihoyo_jobs():
 
 
 # 测试入口
-if __name__ == "__main__":
-    async def test():
-        print("正在获取米哈游【近两天】新增岗位...")
-        jobs = await get_filtered_mihoyo_jobs()
-        print(f"\n【近两天】新增符合条件岗位：{len(jobs)} 个")
-        for job in jobs:
-            print("-" * 80)
-            print(job)
+# if __name__ == "__main__":
+#     async def test():
+#         print("正在获取米哈游【近两天】新增岗位...")
+#         jobs = await get_filtered_mihoyo_jobs()
+#         print(f"\n【近两天】新增符合条件岗位：{len(jobs)} 个")
+#         for job in jobs:
+#             print("-" * 80)
+#             print(job)
 
-    asyncio.run(test())
+#     asyncio.run(test())
