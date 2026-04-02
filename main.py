@@ -4,7 +4,7 @@ from astrbot.api.star import Context, Star, register
 from astrbot.api import logger, AstrBotConfig
 from astrbot.core.message.message_event_result import MessageChain
 
-from . import jobs_tencent, jobs_dajiang, jobs_wangyi, jobs_bili, jobs_yingjiao, jobs_xiaohongshu, jobs_bytedance, jobs_mihoyo, jobs_taotian, jobs_aliguoji, jobs_aliyun, jobs_feizhu, jobs_qianwen, jobs_lingxihuyu, jobs_alijiankang, jobs_hujing, jobs_gaode
+from . import jobs_tencent, jobs_dajiang, jobs_wangyi, jobs_bili, jobs_yingjiao, jobs_xiaohongshu, jobs_bytedance, jobs_mihoyo, jobs_taotian, jobs_aliguoji, jobs_aliyun, jobs_feizhu, jobs_qianwen, jobs_lingxihuyu, jobs_alijiankang, jobs_hujing, jobs_gaode, jobs_xiecheng
 
 # ===================== 配置与映射 =====================
 # 这里的顺序决定了“查询全部”时的显示顺序
@@ -17,6 +17,7 @@ COMPANY_MAP = {
     "xhs":       {"name": "小红书", "func": jobs_xiaohongshu.get_filtered_xhs_jobs, "sync": True},
     "byte":      {"name": "字节",   "func": jobs_bytedance.get_filtered_bytedance_jobs,"sync": True},
     "mihoyo":    {"name": "米哈游", "func": jobs_mihoyo.get_filtered_mihoyo_jobs,    "sync": False},
+    "xiecheng":  {"name": "携程",   "func": jobs_xiecheng.get_filtered_ctrip_jobs,  "sync": False},
     "taotian":   {"name": "淘天",   "func": jobs_taotian.get_filtered_taotian_jobs,  "sync": True},
     "aliguoji":  {"name": "阿里国际", "func": jobs_aliguoji.get_filtered_aliguoji_jobs,  "sync": True},
     "aliyun":    {"name": "阿里云", "func": jobs_aliyun.get_filtered_aliyun_jobs,  "sync": True},
