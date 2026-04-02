@@ -31,7 +31,9 @@ async def get_filtered_mihoyo_jobs():
     EXCLUDE_KEYWORDS = ['硕士', '四年', '4年', '五年', '5年', '六年', '6年','七年', '7年', '八年', '8年', '九年', '9年', '十年', '10年']
 
     # 核心：单个缓存文件 + 岗位ID绑定日期
-    CACHE_FILE = "mihoyo_job_cache.json"
+    # ===================== 固定缓存文件绝对路径 =====================
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    CACHE_FILE = os.path.join(SCRIPT_DIR, "mihoyo_job_cache.json")
     TODAY = datetime.now().strftime("%Y-%m-%d")
     YESTERDAY = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
     RECENT_DAYS = [YESTERDAY, TODAY]  # 查询近两天
@@ -129,13 +131,13 @@ async def get_filtered_mihoyo_jobs():
 
 
 # 测试入口
-# if __name__ == "__main__":
-#     async def test():
-#         print("正在获取米哈游【近两天】新增岗位...")
-#         jobs = await get_filtered_mihoyo_jobs()
-#         print(f"\n【近两天】新增符合条件岗位：{len(jobs)} 个")
-#         for job in jobs:
-#             print("-" * 80)
-#             print(job)
+if __name__ == "__main__":
+    async def test():
+        print("正在获取米哈游【近两天】新增岗位...")
+        jobs = await get_filtered_mihoyo_jobs()
+        print(f"\n【近两天】新增符合条件岗位：{len(jobs)} 个")
+        for job in jobs:
+            print("-" * 80)
+            print(job)
 
-#     asyncio.run(test())
+    asyncio.run(test())
