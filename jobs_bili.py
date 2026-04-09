@@ -98,7 +98,7 @@ def get_filtered_bili_jobs():
 
                 raw_jobs.append({
                     "岗位名": job_name,
-                    "发布时间": date_text,
+                    "更新时间": date_text,
                     "详情链接": detail_url
                 })
 
@@ -167,7 +167,7 @@ def get_filtered_bili_jobs():
                 "工作地点": location,
                 "岗位类别": category,
                 "详情链接": job["详情链接"],
-                "发布时间": job["发布时间"],
+                "更新时间": job["更新时间"],
                 "工作职责": responsibility,
                 "岗位要求": requirement
             })
@@ -192,7 +192,7 @@ def get_filtered_bili_jobs():
 #         print(f"   公司：{job['公司']}")
 #         print(f"   地点：{job['工作地点']}")
 #         print(f"   类别：{job['岗位类别']}")
-#         print(f"   发布时间：{job['发布时间']}")
+#         print(f"   更新时间：{job['更新时间']}")
 #         print(f"   详情链接：{job['详情链接']}")
 #         print(f"   工作职责：{job['工作职责']}")
 #         print(f"   岗位要求：{job['岗位要求']}")
